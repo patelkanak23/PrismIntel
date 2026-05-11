@@ -4,9 +4,9 @@
 - [x] Phase 0: Environment setup
 - [x] Phase 1: CONTEXT.md
 - [x] Phase 2: TASKS.md
+- [x] Task 1: Project scaffold
 
 ## 🔄 In Progress
-- [ ] Task 1: Project scaffold
 
 ## 📋 Upcoming
 - [ ] Task 2: ResearchState

@@ -4,3 +4,4 @@ streamlit
 httpx
 python-dotenv
 pydantic
+fastmcp
