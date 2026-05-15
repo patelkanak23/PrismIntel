@@ -1,10 +1,110 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PrismIntel</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrismIntel 🔍</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon" aria-hidden="true">🔍</span>
+        <span class="logo-text">PrismIntel</span>
+      </div>
+      <span class="tagline">Multi-Agent Company Intelligence</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h3 class="sidebar-title">Recent Research</h3>
+      <div id="history-list">
+        <p class="sidebar-empty">No research yet</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="card" id="form-card">
+        <h2 class="card-title">Research a Company</h2>
+        <div class="form-group">
+          <label for="company-name">Company Name *</label>
+          <input type="text" id="company-name" placeholder="e.g. Tesla, OpenAI, Stripe" autocomplete="organization">
+        </div>
+        <div class="form-group">
+          <label for="website-url">Website URL (optional)</label>
+          <input type="url" id="website-url" placeholder="https://company.com" autocomplete="url">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="hq-location">HQ Location</label>
+            <input type="text" id="hq-location" placeholder="San Francisco, CA" autocomplete="address-level2">
+          </div>
+          <div class="form-group">
+            <label for="industry">Industry</label>
+            <input type="text" id="industry" placeholder="Electric Vehicles">
+          </div>
+        </div>
+        <button id="research-btn" class="btn-primary" type="button">🔍 Research Company</button>
+      </section>
+
+      <section class="card hidden" id="progress-card">
+        <div class="progress-header">
+          <div class="spinner" id="spinner"></div>
+          <span id="status-text">Initializing...</span>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="checklist">
+          <div class="check-item" id="check-company">⬜ Company Research</div>
+          <div class="check-item" id="check-financial">⬜ Financial Analysis</div>
+          <div class="check-item" id="check-industry">⬜ Industry Analysis</div>
+          <div class="check-item" id="check-news">⬜ News Scan</div>
+        </div>
+      </section>
+
+      <section class="card hidden" id="risk-card">
+        <h2 class="card-title">Risk Assessment</h2>
+        <div class="risk-grid">
+          <div class="risk-box" id="risk-overall">
+            <span class="risk-label">Overall Risk</span>
+            <span class="risk-value" id="val-overall">—</span>
+            <span class="risk-sub">out of 10</span>
+          </div>
+          <div class="risk-box" id="risk-financial">
+            <span class="risk-label">Financial Risk</span>
+            <span class="risk-value" id="val-financial">—</span>
+            <span class="risk-sub">out of 10</span>
+          </div>
+          <div class="risk-box" id="risk-reputational">
+            <span class="risk-label">Reputational Risk</span>
+            <span class="risk-value" id="val-reputational">—</span>
+            <span class="risk-sub">out of 10</span>
+          </div>
+          <div class="risk-box" id="risk-market">
+            <span class="risk-label">Market Risk</span>
+            <span class="risk-value" id="val-market">—</span>
+            <span class="risk-sub">out of 10</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card hidden" id="report-card">
+        <div class="report-header">
+          <h2 class="card-title" id="report-title">Intelligence Report</h2>
+          <div class="report-actions">
+            <button class="btn-secondary" id="copy-btn" type="button">📋 Copy</button>
+            <button class="btn-secondary" id="pdf-btn" type="button">📄 Download PDF</button>
+            <button class="btn-secondary" id="new-btn" type="button">🔄 New Research</button>
+          </div>
+        </div>
+        <div class="report-body" id="report-body"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>

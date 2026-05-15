@@ -5,6 +5,13 @@ from abc import ABC, abstractmethod
 from typing import Dict, List
 from urllib.parse import urlparse
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 
 class BaseSearchTool(ABC):
     @abstractmethod
@@ -108,11 +115,71 @@ class MockTavily(BaseSearchTool):
         return [{"url": url, "content": article_text} for url in urls]
 
 
+class RealTavily(BaseSearchTool):
+    def __init__(self):
+        from tavily import TavilyClient
+
+        self.client = TavilyClient(
+            api_key=os.getenv("TAVILY_API_KEY")
+        )
+
+    async def search(self, query: str, topic: str = "general") -> List[Dict]:
+        kwargs = {
+            "query": query,
+            "max_results": 5,
+            "search_depth": "basic",
+        }
+        if topic in ("finance", "news"):
+            kwargs["topic"] = topic
+        try:
+            raw = await asyncio.to_thread(self.client.search, **kwargs)
+            results = raw.get("results", [])
+            return [
+                {
+                    "title": r.get("title", ""),
+                    "url": r.get("url", ""),
+                    "content": r.get("content", ""),
+                    "score": r.get("score", 0.5),
+                }
+                for r in results
+            ]
+        except Exception as e:
+            print(f"Tavily search failed: {e}")
+            return await MockTavily().search(query, topic=topic)
+
+    async def crawl(self, url: str) -> str:
+        try:
+            raw = await asyncio.to_thread(self.client.crawl, url)
+            results = raw.get("results", [])
+            return results[0].get("raw_content", "") if results else ""
+        except Exception as e:
+            print(f"Crawl failed: {e}")
+            return await MockTavily().crawl(url)
+
+    async def extract(self, urls: List[str]) -> List[Dict]:
+        try:
+            raw = await asyncio.to_thread(
+                self.client.extract,
+                urls=urls,
+            )
+            return [
+                {
+                    "url": r.get("url", ""),
+                    "content": r.get("raw_content", ""),
+                }
+                for r in raw.get("results", [])
+            ]
+        except Exception as e:
+            print(f"Extract failed: {e}")
+            return await MockTavily().extract(urls)
+
+
 def get_search_tool() -> BaseSearchTool:
-    use_mocks = os.environ.get("USE_MOCKS", "true").lower()
-    if use_mocks == "true" or not os.environ.get("TAVILY_API_KEY"):
+    tavily_key = os.getenv("TAVILY_API_KEY", "")
+    use_mocks = os.getenv("USE_MOCKS", "true").lower() == "true"
+    if use_mocks or not tavily_key:
         return MockTavily()
-    return MockTavily()
+    return RealTavily()
 
 
 def _extract_company(text: str) -> str:

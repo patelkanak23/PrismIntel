@@ -4,6 +4,13 @@ import re
 from abc import ABC, abstractmethod
 from typing import List
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 
 class BaseLLM(ABC):
     @abstractmethod
@@ -78,11 +85,59 @@ class MockLLM(BaseLLM):
         return f"## {category.title()} Analysis\n\n" + "\n\n".join(paragraphs)
 
 
+class GroqLLM(BaseLLM):
+    def __init__(self):
+        from langchain_groq import ChatGroq
+
+        self.client = ChatGroq(
+            model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            api_key=os.getenv("GROQ_API_KEY"),
+            temperature=0.1,
+            max_tokens=2048,
+        )
+
+    async def generate(self, prompt: str) -> str:
+        try:
+            response = await asyncio.to_thread(self.client.invoke, prompt)
+            return response.content
+        except Exception as e:
+            print(f"Groq generation failed: {e}")
+            return await MockLLM().generate(prompt)
+
+    async def generate_queries(self, company_name: str) -> List[str]:
+        prompt = (
+            f"Generate exactly 4 specific web search queries to "
+            f"research {company_name}. Return only the 4 queries, "
+            f"one per line. No numbering, no bullets, no explanation."
+        )
+        text = await self.generate(prompt)
+        queries = [q.strip() for q in text.strip().split("\n") if q.strip()]
+        if len(queries) < 4:
+            return await MockLLM().generate_queries(company_name)
+        return queries[:4]
+
+    async def generate_briefing(self, category: str, company: str, docs: list) -> str:
+        context = "\n\n".join(
+            d.get("content", "")[:3000] for d in docs[:5]
+        )
+        prompt = (
+            f"Write a structured markdown briefing about {company}'s "
+            f"{category} profile. Use ## headers and bullet points. "
+            f"Be specific and factual. Base it on this context:\n\n"
+            f"{context}"
+        )
+        briefing = await self.generate(prompt)
+        if not briefing.strip().startswith("##"):
+            return await MockLLM().generate_briefing(category, company, docs)
+        return briefing
+
+
 def get_llm() -> BaseLLM:
-    use_mocks = os.environ.get("USE_MOCKS", "true").lower()
-    if use_mocks == "true" or not os.environ.get("GROQ_API_KEY"):
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    use_mocks = os.getenv("USE_MOCKS", "true").lower() == "true"
+    if use_mocks or not groq_key:
         return MockLLM()
-    return MockLLM()
+    return GroqLLM()
 
 
 if __name__ == "__main__":
