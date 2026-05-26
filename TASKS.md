@@ -18,16 +18,14 @@
 - [x] Task 12: LangGraph graph
 - [x] Task 13: SSE EventManager
 - [x] Task 14: FastAPI core + SQLite
-
+- [x] Task 15: SSE + PDF endpoints
+- [x] Task 16: index.html
+- [x] Task 17: style.css
+- [x] Task 18: app.js
 ## In Progress
-
-## Upcoming
-- [ ] Task 15: SSE + PDF endpoints
-- [ ] Task 16: index.html
-- [ ] Task 17: style.css
-- [ ] Task 18: app.js
 - [ ] Task 19: MCP server
 - [ ] Task 20: Real Groq API
 - [ ] Task 21: Real Tavily API
+## Upcoming
 - [ ] Task 22: Full system test
 - [ ] Task 23: README + demo GIF
