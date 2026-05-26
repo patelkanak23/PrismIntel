@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from uuid import uuid4
 import asyncio
+import unicodedata
 from pathlib import Path
 from fpdf import FPDF
 
@@ -33,6 +34,35 @@ app.add_middleware(
 
 # In-memory job store for active/recent jobs
 jobs = {}
+
+
+PDF_REPLACEMENTS = {
+    "\u2014": "-",
+    "\u2013": "-",
+    "\u2018": "'",
+    "\u2019": "'",
+    "\u201c": '"',
+    "\u201d": '"',
+    "\u2026": "...",
+    "\u2705": "[OK]",
+    "\u274c": "[X]",
+    "\U0001f50d": "",
+    "\U0001f4cb": "",
+    "\U0001f4c4": "",
+    "\U0001f504": "",
+    "\u2b1c": "[ ]",
+}
+
+
+def clean_pdf_text(text: str) -> str:
+    """Convert markdown-ish generated text into core-font-safe PDF text."""
+    clean = (text.replace("### ", "").replace("## ", "")
+                 .replace("# ", "").replace("**", "")
+                 .replace("*", "").replace("`", ""))
+    for original, replacement in PDF_REPLACEMENTS.items():
+        clean = clean.replace(original, replacement)
+    clean = unicodedata.normalize("NFKD", clean)
+    return clean.encode("latin-1", "ignore").decode("latin-1").strip()
 
 
 class ResearchRequest(BaseModel):
@@ -124,9 +154,7 @@ async def generate_pdf(body: dict):
     pdf.add_page()
     pdf.set_font("Helvetica", size=11)
     for line in markdown.split("\n"):
-        clean = (line.replace("### ", "").replace("## ", "")
-                     .replace("# ", "").replace("**", "")
-                     .replace("*", "").replace("`", "").strip())
+        clean = clean_pdf_text(line)
         if not clean:
             pdf.ln(3)
             continue

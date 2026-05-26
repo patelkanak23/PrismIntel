@@ -149,29 +149,38 @@ class RealTavily(BaseSearchTool):
 
     async def crawl(self, url: str) -> str:
         try:
-            raw = await asyncio.to_thread(self.client.crawl, url)
+            parsed = urlparse(url)
+            domain = (parsed.netloc or parsed.path).replace("www.", "").split(":")[0]
+            query = f"site:{domain} company homepage overview"
+            raw = await asyncio.to_thread(
+                self.client.search,
+                query=query,
+                max_results=1,
+                search_depth="basic",
+                include_raw_content=True,
+                include_domains=[domain] if domain else [],
+            )
             results = raw.get("results", [])
-            return results[0].get("raw_content", "") if results else ""
+            if results:
+                return (results[0].get("raw_content")
+                        or results[0].get("content", ""))
+
+            context = await asyncio.to_thread(
+                self.client.get_search_context,
+                query=query,
+                search_depth="basic",
+                max_tokens=1500,
+            )
+            return context if isinstance(context, str) else str(context)
         except Exception as e:
             print(f"Crawl failed: {e}")
             return await MockTavily().crawl(url)
 
     async def extract(self, urls: List[str]) -> List[Dict]:
-        try:
-            raw = await asyncio.to_thread(
-                self.client.extract,
-                urls=urls,
-            )
-            return [
-                {
-                    "url": r.get("url", ""),
-                    "content": r.get("raw_content", ""),
-                }
-                for r in raw.get("results", [])
-            ]
-        except Exception as e:
-            print(f"Extract failed: {e}")
-            return await MockTavily().extract(urls)
+        pages = []
+        for url in urls:
+            pages.append({"url": url, "content": await self.crawl(url)})
+        return pages
 
 
 def get_search_tool() -> BaseSearchTool:
