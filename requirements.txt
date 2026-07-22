@@ -6,3 +6,7 @@ python-dotenv
 pydantic
 fastmcp
 fpdf2
+langchain-groq
+tavily-python
+langgraph
+langchain-core

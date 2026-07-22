@@ -1,3 +1,7 @@
+from pathlib import Path as _Path
+from dotenv import load_dotenv as _load_dotenv
+_load_dotenv(_Path(__file__).resolve().parent.parent / ".env", override=True)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,7 +17,7 @@ from fpdf import FPDF
 from backend.state import create_initial_state
 from backend.graph import app as graph_app
 from backend.events import event_manager
-from backend.db.sqlite import init_db, save_job, get_history
+from backend.db.sqlite import init_db, save_job, get_history, delete_job, clear_history
 
 
 @asynccontextmanager
@@ -71,6 +75,7 @@ class ResearchRequest(BaseModel):
     website_url: str = ""
     hq_location: str = ""
     industry: str = ""
+    tavily_api_key: str = ""
 
 
 async def run_pipeline(job_id: str, state: dict):
@@ -105,6 +110,8 @@ async def start_research(req: ResearchRequest):
         industry=req.industry,
         hq_location=req.hq_location,
     )
+    if req.tavily_api_key:
+        state["tavily_api_key"] = req.tavily_api_key
     jobs[job_id] = {**state, "status": "running"}
     save_job(job_id, req.company_name, "running")
     event_manager.create_queue(job_id)
@@ -128,6 +135,22 @@ async def get_report(job_id: str):
 async def history():
     """Return last 10 research jobs from SQLite."""
     return {"history": get_history()}
+
+
+@app.delete("/history/{job_id}")
+async def remove_job(job_id: str):
+    """Delete a single research job from history."""
+    delete_job(job_id)
+    jobs.pop(job_id, None)
+    return {"status": "deleted"}
+
+
+@app.delete("/history")
+async def remove_all_history():
+    """Delete all research jobs from history."""
+    clear_history()
+    jobs.clear()
+    return {"status": "cleared"}
 
 
 @app.get("/research/{job_id}/stream")

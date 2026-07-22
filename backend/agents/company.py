@@ -36,6 +36,7 @@ class CompanyAnalyzer:
     async def run(self, state: ResearchState) -> dict:
         company = state["company_name"]
         print(f"CompanyAnalyzer starting for: {company}")
+        self.search_tool = get_search_tool(state.get("tavily_api_key", ""))
         queries = await self.generate_queries(company)
         documents = await self.search(queries)
         existing = state.get("documents", {})

@@ -48,6 +48,22 @@ def get_history() -> List[Dict]:
             for r in rows]
 
 
+def delete_job(job_id: str) -> None:
+    """Delete a single research job from history."""
+    con = sqlite3.connect(DB_PATH)
+    con.execute("DELETE FROM research_jobs WHERE job_id = ?", (job_id,))
+    con.commit()
+    con.close()
+
+
+def clear_history() -> None:
+    """Delete all research jobs from history."""
+    con = sqlite3.connect(DB_PATH)
+    con.execute("DELETE FROM research_jobs")
+    con.commit()
+    con.close()
+
+
 if __name__ == "__main__":
     import os
     import sys

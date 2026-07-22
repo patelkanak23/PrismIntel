@@ -10,11 +10,21 @@ const progressFill = document.getElementById("progress-fill");
 const reportBody = document.getElementById("report-body");
 const reportTitle = document.getElementById("report-title");
 const historyList = document.getElementById("history-list");
+const themeToggle = document.getElementById("theme-toggle");
 
 let currentReport = "";
 let currentEventSource = null;
 
-document.addEventListener("DOMContentLoaded", loadHistory);
+document.addEventListener("DOMContentLoaded", () => {
+  applyTheme(localStorage.getItem("prismintel-theme") || "light");
+  loadHistory();
+});
+
+themeToggle.addEventListener("click", () => {
+  const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(nextTheme);
+  localStorage.setItem("prismintel-theme", nextTheme);
+});
 
 btn.addEventListener("click", async () => {
   const company = document.getElementById("company-name").value.trim();
@@ -23,11 +33,18 @@ btn.addEventListener("click", async () => {
     return;
   }
 
+  const tavilyKey = document.getElementById("tavily-api-key").value.trim();
+  if (!tavilyKey) {
+    alert("Tavily API key is required for web research");
+    return;
+  }
+
   const payload = {
     company_name: company,
     website_url: document.getElementById("website-url").value.trim(),
     hq_location: document.getElementById("hq-location").value.trim(),
-    industry: document.getElementById("industry").value.trim()
+    industry: document.getElementById("industry").value.trim(),
+    tavily_api_key: document.getElementById("tavily-api-key").value.trim()
   };
 
   btn.disabled = true;
@@ -49,9 +66,9 @@ btn.addEventListener("click", async () => {
     const data = await res.json();
     openSSE(data.job_id, company);
   } catch (error) {
-    statusText.textContent = "❌ Backend not running";
+    statusText.textContent = "Backend not running";
     btn.disabled = false;
-    btn.textContent = "🔍 Research Company";
+    btn.textContent = "Start research";
   }
 });
 
@@ -71,9 +88,9 @@ function openSSE(jobId, company) {
 
   currentEventSource.onerror = () => {
     currentEventSource.close();
-    statusText.textContent = "❌ Connection lost";
+    statusText.textContent = "Connection lost";
     btn.disabled = false;
-    btn.textContent = "🔍 Research Company";
+    btn.textContent = "Start research";
   };
 }
 
@@ -96,19 +113,29 @@ function handleEvent(msg, company, eventSource) {
     eventSource.close();
     setProgress(100);
     stopSpinner();
-    statusText.textContent = "✅ Research complete!";
+    // Hide progress card, show completed state cleanly
+    hide(progressCard);
     currentReport = data.report || "";
     reportTitle.textContent = `Intelligence Report: ${company}`;
     renderMarkdown(currentReport);
     show(reportCard);
     btn.disabled = false;
-    btn.textContent = "🔍 Research Company";
+    btn.textContent = "Start research";
     loadHistory();
   } else if (type === "error") {
     eventSource.close();
-    statusText.textContent = `❌ ${data.message || "Research failed"}`;
+    stopSpinner();
+    const msg = data.message || "Research failed";
+    let display = msg;
+    if (msg.includes("Groq")) {
+      display = "Groq API error — check your GROQ_API_KEY in .env";
+    } else if (msg.includes("Tavily")) {
+      display = "Tavily API error — check your Tavily API key";
+    }
+    statusText.textContent = display;
+    statusText.style.color = "var(--danger)";
     btn.disabled = false;
-    btn.textContent = "🔍 Research Company";
+    btn.textContent = "Start research";
   }
 }
 
@@ -120,17 +147,63 @@ function renderMarkdown(markdown) {
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`(.+?)`/g, "<code>$1</code>")
-    .replace(/^- (.+)$/gm, "<li>$1</li>");
+    .replace(/^---$/gm, "<hr>")
+    .replace(/\b(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+    .replace(/^\d+\.\s+(.+)$/gm, "<!--oli-->$1<!--/oli-->")
+    .replace(/^\s{2,}- (.+)$/gm, "<!--sli-->$1<!--/sli-->")
+    .replace(/^- (.+)$/gm, "<!--uli-->$1<!--/uli-->");
 
+  // Block wrapping
   html = html.split("\n\n").map((block) => {
     const trimmed = block.trim();
     if (!trimmed) return "";
-    if (/^<(h[123]|li|ul)/.test(trimmed)) return trimmed;
+    if (/^(<(h[123]|hr)|<!--(uli|oli|sli))/.test(trimmed)) return trimmed;
     return `<p>${trimmed.replace(/\n/g, "<br>")}</p>`;
   }).join("\n");
 
-  html = html.replace(/(<li>.*?<\/li>\s*)+/gs, (match) => `<ul>${match}</ul>`);
-  reportBody.innerHTML = html;
+  // Convert list markers to real HTML with proper wrappers
+  // Process line by line to group consecutive items
+  const lines = html.split("\n");
+  const output = [];
+  let inList = null; // 'ul', 'ol', or null
+
+  for (const line of lines) {
+    const isUli = line.includes("<!--uli-->");
+    const isSli = line.includes("<!--sli-->");
+    const isOli = line.includes("<!--oli-->");
+
+    if (isUli || isSli) {
+      if (inList !== "ul") {
+        if (inList) output.push(`</${inList}>`);
+        output.push("<ul>");
+        inList = "ul";
+      }
+      if (isSli) {
+        const content = line.replace(/<!--sli-->(.*?)<!--\/sli-->/, '$1');
+        output.push(`<li class="sub-item">${content}</li>`);
+      } else {
+        const content = line.replace(/<!--uli-->(.*?)<!--\/uli-->/, '$1');
+        output.push(`<li>${content}</li>`);
+      }
+    } else if (isOli) {
+      if (inList !== "ol") {
+        if (inList) output.push(`</${inList}>`);
+        output.push("<ol>");
+        inList = "ol";
+      }
+      const content = line.replace(/<!--oli-->(.*?)<!--\/oli-->/, '$1');
+      output.push(`<li>${content}</li>`);
+    } else {
+      if (inList) {
+        output.push(`</${inList}>`);
+        inList = null;
+      }
+      output.push(line);
+    }
+  }
+  if (inList) output.push(`</${inList}>`);
+
+  reportBody.innerHTML = output.join("\n");
 }
 
 function showRiskScores(scores) {
@@ -146,7 +219,7 @@ function showRiskScores(scores) {
     const value = scores[field] || 0;
     const valueEl = document.getElementById(`val-${key}`);
     const boxEl = document.getElementById(`risk-${key}`);
-    if (valueEl) valueEl.textContent = value || "—";
+    if (valueEl) valueEl.textContent = value || "-";
     if (boxEl) {
       boxEl.classList.remove("risk-low", "risk-medium", "risk-high");
       boxEl.classList.add(value <= 4 ? "risk-low" : value <= 7 ? "risk-medium" : "risk-high");
@@ -167,16 +240,53 @@ async function loadHistory() {
     }
 
     history.forEach((item) => {
-      const div = document.createElement("div");
-      div.textContent = item.company_name || "Untitled research";
-      div.title = item.created_at || "";
-      div.addEventListener("click", () => loadPastReport(item.job_id));
-      historyList.appendChild(div);
+      const row = document.createElement("div");
+      row.className = "history-item";
+
+      const name = document.createElement("span");
+      name.className = "history-name";
+      name.textContent = item.company_name || "Untitled research";
+      name.title = item.created_at || "";
+      name.addEventListener("click", () => loadPastReport(item.job_id));
+
+      const del = document.createElement("button");
+      del.className = "history-delete";
+      del.type = "button";
+      del.title = "Remove from history";
+      del.textContent = "\u00d7";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteJob(item.job_id);
+      });
+
+      row.appendChild(name);
+      row.appendChild(del);
+      historyList.appendChild(row);
     });
   } catch (error) {
     historyList.innerHTML = '<p class="sidebar-empty">No research yet</p>';
   }
 }
+
+async function deleteJob(jobId) {
+  try {
+    await fetch(`${API}/history/${jobId}`, { method: "DELETE" });
+    loadHistory();
+  } catch (error) {
+    console.error("Failed to delete job", error);
+  }
+}
+
+async function clearAllHistory() {
+  try {
+    await fetch(`${API}/history`, { method: "DELETE" });
+    loadHistory();
+  } catch (error) {
+    console.error("Failed to clear history", error);
+  }
+}
+
+document.getElementById("clear-history-btn").addEventListener("click", clearAllHistory);
 
 async function loadPastReport(jobId) {
   if (!jobId) return;
@@ -208,9 +318,9 @@ document.getElementById("pdf-btn").addEventListener("click", async () => {
 document.getElementById("copy-btn").addEventListener("click", () => {
   navigator.clipboard.writeText(currentReport);
   const copyBtn = document.getElementById("copy-btn");
-  copyBtn.textContent = "✅ Copied!";
+  copyBtn.textContent = "Copied";
   setTimeout(() => {
-    copyBtn.textContent = "📋 Copy";
+    copyBtn.textContent = "Copy";
   }, 2000);
 });
 
@@ -244,7 +354,8 @@ function setProgress(percent) {
 function markChecklistDone(category) {
   const element = document.getElementById(`check-${category}`);
   if (!element) return;
-  element.textContent = `✅ ${element.textContent.slice(2).trim()}`;
+  element.textContent = element.textContent.replace(/^Done: /, "");
+  element.textContent = `Done: ${element.textContent.trim()}`;
   element.classList.add("done");
 }
 
@@ -259,7 +370,7 @@ function resetChecklist() {
   Object.entries(labels).forEach(([key, label]) => {
     const element = document.getElementById(`check-${key}`);
     if (element) {
-      element.textContent = `⬜ ${label}`;
+      element.textContent = label;
       element.classList.remove("done");
     }
   });
@@ -271,6 +382,16 @@ function stopSpinner() {
 
 function resetSpinner() {
   document.getElementById("spinner").style.animation = "";
+}
+
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+  const moonIcon = document.getElementById("theme-icon-dark");
+  const sunIcon = document.getElementById("theme-icon-light");
+  if (moonIcon && sunIcon) {
+    moonIcon.style.display = theme === "dark" ? "none" : "";
+    sunIcon.style.display = theme === "dark" ? "" : "none";
+  }
 }
 
 function escapeHtml(value) {

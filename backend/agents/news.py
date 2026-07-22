@@ -19,10 +19,10 @@ class NewsScanner:
 
     async def generate_queries(self, company_name: str) -> List[str]:
         return [
-            f"{company_name} recent announcements press releases",
-            f"{company_name} executive changes leadership news",
-            f"{company_name} product launches latest updates",
-            f"{company_name} recent news partnerships strategy",
+            f"{company_name} earnings results quarterly annual revenue 2025 2026",
+            f"{company_name} acquisition merger partnership strategic deal",
+            f"{company_name} CEO leadership executive appointment restructuring",
+            f"{company_name} product launch innovation expansion new market",
         ]
 
     async def search(self, queries: List[str]) -> List[Dict]:
@@ -40,6 +40,7 @@ class NewsScanner:
     async def run(self, state: ResearchState) -> dict:
         company = state["company_name"]
         print(f"NewsScanner starting for: {company}")
+        self.search_tool = get_search_tool(state.get("tavily_api_key", ""))
         queries = await self.generate_queries(company)
         documents = await self.search(queries)
         existing = state.get("documents", {})

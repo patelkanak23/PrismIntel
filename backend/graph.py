@@ -76,6 +76,7 @@ graph.add_node("briefing", briefing_node)
 graph.add_node("editor", editor_node)
 graph.add_node("risk", risk_node)
 graph.add_node("competitor", competitor_node)
+graph.add_node("final_editor", editor_node)
 
 graph.add_edge(START, "grounding")
 graph.add_conditional_edges(
@@ -89,7 +90,8 @@ graph.add_edge("curator", "briefing")
 graph.add_edge("briefing", "editor")
 graph.add_edge("editor", "risk")
 graph.add_edge("risk", "competitor")
-graph.add_edge("competitor", END)
+graph.add_edge("competitor", "final_editor")
+graph.add_edge("final_editor", END)
 
 app = graph.compile()
 
@@ -112,6 +114,10 @@ if __name__ == "__main__":
         assert result["final_report"] != ""
         assert result["risk_scores"] != {}
         assert len(result["competitors"]) == 3
+        assert "See risk scores section" not in result["final_report"]
+        assert "See competitors section" not in result["final_report"]
+        assert "Overall Risk" in result["final_report"]
+        assert "Competitive Landscape" in result["final_report"]
         print(f"✅ Report: {len(result['final_report'])} chars")
         print(f"✅ Risk scores: {result['risk_scores']}")
         print(f"✅ Competitors: {len(result['competitors'])}")

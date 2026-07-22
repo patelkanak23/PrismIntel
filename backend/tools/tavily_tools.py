@@ -116,11 +116,11 @@ class MockTavily(BaseSearchTool):
 
 
 class RealTavily(BaseSearchTool):
-    def __init__(self):
+    def __init__(self, api_key: str = ""):
         from tavily import TavilyClient
 
         self.client = TavilyClient(
-            api_key=os.getenv("TAVILY_API_KEY")
+            api_key=api_key or os.getenv("TAVILY_API_KEY")
         )
 
     async def search(self, query: str, topic: str = "general") -> List[Dict]:
@@ -145,7 +145,7 @@ class RealTavily(BaseSearchTool):
             ]
         except Exception as e:
             print(f"Tavily search failed: {e}")
-            return await MockTavily().search(query, topic=topic)
+            raise RuntimeError(f"Tavily search failed: {e}") from e
 
     async def crawl(self, url: str) -> str:
         try:
@@ -174,7 +174,7 @@ class RealTavily(BaseSearchTool):
             return context if isinstance(context, str) else str(context)
         except Exception as e:
             print(f"Crawl failed: {e}")
-            return await MockTavily().crawl(url)
+            return f"Failed to crawl {url}: {e}"
 
     async def extract(self, urls: List[str]) -> List[Dict]:
         pages = []
@@ -183,12 +183,12 @@ class RealTavily(BaseSearchTool):
         return pages
 
 
-def get_search_tool() -> BaseSearchTool:
-    tavily_key = os.getenv("TAVILY_API_KEY", "")
+def get_search_tool(api_key: str = "") -> BaseSearchTool:
+    tavily_key = api_key or os.getenv("TAVILY_API_KEY", "")
     use_mocks = os.getenv("USE_MOCKS", "true").lower() == "true"
     if use_mocks or not tavily_key:
         return MockTavily()
-    return RealTavily()
+    return RealTavily(api_key=tavily_key)
 
 
 def _extract_company(text: str) -> str:

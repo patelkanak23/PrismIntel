@@ -9,7 +9,7 @@ async def grounding_node(state: ResearchState) -> dict:
         return {}
     print(f"Grounding: crawling {url}")
     try:
-        tool = get_search_tool()
+        tool = get_search_tool(state.get("tavily_api_key", ""))
         content = await tool.crawl(url)
         doc = {
             "title": "Company Homepage",
