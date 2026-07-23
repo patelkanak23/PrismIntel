@@ -48,8 +48,8 @@ class CompetitorAnalyst:
                     f"Based on this research, identify the 3 most important DIRECT competitors to {company}. "
                     f"Choose companies that compete for the SAME customers with similar products or services. "
                     f"Prefer companies that are the biggest competitive threat by revenue or market share. "
-                    f"Return ONLY the company names (or product names if the company is known by its product), "
-                    f"one per line. No numbering, no descriptions, no explanations.\n\n"
+                    f"Return ONLY the company names. If a competitor is known by a specific product, format it as 'Company (Product)', e.g., 'Google (Gemini)'. "
+                    f"Return one per line. No numbering, no descriptions, no explanations.\n\n"
                     f"Context:\n{context}"
                 )
                 
