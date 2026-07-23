@@ -1,4 +1,29 @@
+# Environment & secrets
+.env
+.env.*
+
+# Python
 venv/
 __pycache__/
-.env
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Database
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agents / AI scaffolding
+.agents/
+.gemini/

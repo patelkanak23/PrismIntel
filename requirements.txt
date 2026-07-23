@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-streamlit
 httpx
 python-dotenv
 pydantic
