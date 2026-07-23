@@ -11,6 +11,9 @@
 [![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-blue)](https://langchain-ai.github.io/langgraph/)
 [![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3-orange)](https://groq.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-prismintel.onrender.com-purple)](https://prismintel.onrender.com)
+
+**[🔗 Live Demo → prismintel.onrender.com](https://prismintel.onrender.com)**
 
 </div>
 
